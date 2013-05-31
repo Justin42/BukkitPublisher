@@ -17,8 +17,21 @@
 
 package me.b2ojustin.bukkit.bukkitclient;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import me.b2ojustin.bukkit.bukkitclient.json.CraftBukkitBuild;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.methods.GetMethod;
+
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.HashMap;
+
 public class BukkitClient {
     private static final String BUKKIT_URL = "http://dev.bukkit.org/";
+    private static final String BUKKIT_VERSION_URL = "http://dev.bukkit.org/game-versions.json";
     private String projectName;
     private String apiKey = "";
 
@@ -26,5 +39,30 @@ public class BukkitClient {
         this.projectName = projectName;
         this.apiKey = apiKey;
         if(this.apiKey == null) this.apiKey = "";
+    }
+
+    public static HashMap<Integer, CraftBukkitBuild> getBukkitVersions() {
+        try {
+            HttpClient httpClient = new HttpClient();
+            HttpMethod httpMethod = new GetMethod(BUKKIT_VERSION_URL);
+            httpClient.executeMethod(httpMethod);
+            Gson gson = new Gson();
+
+            final Type type = new TypeToken<HashMap<Integer, CraftBukkitBuild>>(){}.getType();
+            HashMap<Integer, CraftBukkitBuild> buildMap = gson.fromJson(httpMethod.getResponseBodyAsString(), type);
+            httpMethod.releaseConnection();
+            return buildMap;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new HashMap<>();
+    }
+
+    public static boolean isValidVersion(String versionName) {
+        Collection<CraftBukkitBuild> bukkitBuilds = getBukkitVersions().values();
+        for(CraftBukkitBuild build : bukkitBuilds) {
+            if(build.name.endsWith(versionName)) return true;
+        }
+        return false;
     }
 }
