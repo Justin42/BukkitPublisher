@@ -32,13 +32,17 @@ import java.util.HashMap;
 public class BukkitClient {
     private static final String BUKKIT_URL = "http://dev.bukkit.org/";
     private static final String BUKKIT_VERSION_URL = "http://dev.bukkit.org/game-versions.json";
-    private String projectName;
-    private String apiKey = "";
+    private final String projectUrl;
+    private final String apiKey;
 
-    public BukkitClient(String projectName, String apiKey) {
-        this.projectName = projectName;
+    public BukkitClient(String projectUrl, String apiKey) {
+        this.projectUrl = projectUrl;
         this.apiKey = apiKey;
-        if(this.apiKey == null) this.apiKey = "";
+    }
+
+    public boolean uploadFile(FileUploadDescriptor descriptor) {
+
+        return true;
     }
 
     public static HashMap<Integer, CraftBukkitBuild> getBukkitVersions() {
@@ -64,5 +68,15 @@ public class BukkitClient {
             if(build.name.endsWith(versionName)) return true;
         }
         return false;
+    }
+
+    public static CraftBukkitBuild getBukkitBuild(String version) {
+        Collection<CraftBukkitBuild> bukkitBuilds = getBukkitVersions().values();
+        for(CraftBukkitBuild build : bukkitBuilds) {
+            if(build.name.endsWith(version)) {
+                return build;
+            }
+        }
+        return null;
     }
 }
