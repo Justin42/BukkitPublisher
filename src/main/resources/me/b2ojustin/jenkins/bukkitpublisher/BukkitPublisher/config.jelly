@@ -3,7 +3,7 @@
   <f:block>
     If you choose not to use your own bukkit API key, you must add ${descriptor.username} as a Maintainer to your
     bukkit project page.
-      <f:optionalBlock title="Use my own API key">
+      <f:optionalBlock title="Use my own API key" checked="${instance.useCustomApiKey}" field="useCustomApiKey" inline="true">
         <f:entry title="Bukkit API Key" field="apiKey">
           <f:textbox />
         </f:entry>
@@ -14,20 +14,36 @@
     <f:textbox />
   </f:entry>
 
-  <f:entry title="Artifact Filename" field="filename">
+  <f:entry title="Artifact Filename" field="fileName">
     <f:textbox />
   </f:entry>
 
-  <f:entry name="releaseType" title="Release Type" field="releaseType">
-      <select name="releaseType">
-          <option value="RELEASE">Release</option>
-          <option value="BETA">Beta</option>
-          <option value="ALPHA">Alpha</option>
+  <f:entry title="Release Type">
+      <select name="releaseType" field="releaseType" class="dropdownList">
+        <option value="Release">Release</option>
+
+        <j:if test="${instance.releaseType == 'Beta' }">
+          <option value="Beta" selected="true">Beta</option>
+        </j:if>
+        <j:if test="${instance.releaseType != 'Beta' }">
+          <option value="Beta">Beta</option>
+        </j:if>
+
+        <j:if test="${instance.releaseType == 'Alpha' }">
+          <option value="Alpha" selected="true">Alpha</option>
+        </j:if>
+       <j:if test="${instance.releaseType != 'Alpha' }">
+         <option value="Alpha">Alpha</option>
+       </j:if>
       </select>
   </f:entry>
 
   <f:entry title="Update Project Pages" field="updatePages">
     <f:checkbox />
+  </f:entry>
+
+  <f:entry title="Fail build if unsuccessful" field="failBuild">
+        <f:checkbox />
   </f:entry>
 
 </j:jelly>
