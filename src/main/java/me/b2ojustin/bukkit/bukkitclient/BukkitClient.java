@@ -28,12 +28,18 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 public class BukkitClient {
+    private static final Logger logger = Logger.getLogger(BukkitClient.class.getName());
     private static final String BUKKIT_URL = "http://dev.bukkit.org/";
     private static final String BUKKIT_VERSION_URL = "http://dev.bukkit.org/game-versions.json";
     private final String projectUrl;
     private final String apiKey;
+
+    public static Logger getLogger() {
+        return logger;
+    }
 
     public BukkitClient(String projectUrl, String apiKey) {
         this.projectUrl = projectUrl;
@@ -41,7 +47,11 @@ public class BukkitClient {
     }
 
     public boolean uploadFile(FileUploadDescriptor descriptor) {
-
+        CraftBukkitBuild build = getBukkitBuild(descriptor.getBukkitVersion());
+        if(build == null) {
+            logger.warning("Failed to retrieve craftbukkit build for version " + descriptor.getBukkitVersion());
+            return false;
+        }
         return true;
     }
 
