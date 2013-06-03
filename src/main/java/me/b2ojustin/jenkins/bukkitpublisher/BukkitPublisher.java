@@ -143,11 +143,9 @@ public class BukkitPublisher extends Notifier {
         }
 
         final FileUploadDescriptor uploadDescriptor = new FileUploadDescriptor();
+        uploadDescriptor.setReleaseType(ReleaseType.valueOf(this.releaseType.toUpperCase()));
+
         String name = null;
-
-        ReleaseType releaseType = ReleaseType.valueOf(this.releaseType.toUpperCase());
-        uploadDescriptor.setReleaseType(releaseType);
-
         WildcardFileFilter filter = new WildcardFileFilter(fileName);
         for(Run<? extends AbstractProject<?, ?>, ? extends AbstractBuild<?, ?>>.Artifact artifact : build.getArtifacts()) {
             logger.info("Found artifact. " + artifact.getFileName());
@@ -162,14 +160,24 @@ public class BukkitPublisher extends Notifier {
         }
 
         // Get module directories.
-        FilePath[] moduleDirs = build.getModuleRoots();
-        if(moduleDirs.length == 0) {
-            logger.info("Couldn't retrieve module directory.");
-            return !failBuild;
+        ArrayList<FilePath> moduleRoots = new ArrayList<>();
+        for(FilePath file : build.getModuleRoot().list()) {
+            if(file.getName().equals("pom.xml")) {
+                moduleRoots.add(build.getModuleRoot());
+                break;
+            }
+        }
+        for(FilePath path : build.getModuleRoot().listDirectories()) {
+            for(FilePath file : path.list()) {
+                if(file.getName().equals("pom.xml")) {
+                    moduleRoots.add(path);
+                    break;
+                }
+            }
         }
 
         // Get the bukkit version from the pom file
-        for(FilePath path : moduleDirs) {
+        for(final FilePath path : moduleRoots) {
             boolean success = path.act(new FilePath.FileCallable<Boolean>(){
                 @Override
                 public Boolean invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
@@ -177,13 +185,19 @@ public class BukkitPublisher extends Notifier {
                     // Make sure we have the correct module.
                     if(f.isDirectory()) {
                         File file = new File(f.getAbsolutePath() + "/target/" + uploadDescriptor.getFile().getName());
-                        if(!file.exists()) return false;
+                        if(!file.exists()) {
+                            //logger.info("Could not find artifact file at " + file.getAbsolutePath());
+                            return false;
+                        }
                     }
                     else return false;
 
                     // Load the pom file
                     File pomFile = new File(f.getAbsolutePath() + "/pom.xml");
-                    if(!pomFile.exists()) return false;
+                    if(!pomFile.exists()) {
+                        //logger.info("Couldn't retrieve pom file at " + pomFile.getAbsolutePath());
+                        return false;
+                    }
 
                     // Get bukkit version
                     try {
@@ -201,26 +215,28 @@ public class BukkitPublisher extends Notifier {
 
                         // Get file version
                         if(model.getVersion() == null) return false;
-                        uploadDescriptor.setFileVersion(model.getVersion());
+                        String version = model.getVersion();
+                        if(version.endsWith("-SNAPSHOT")) version = version.replace("-SNAPSHOT", "");
+                        uploadDescriptor.setFileVersion(version);
 
                     } catch (XmlPullParserException e) {
                         e.printStackTrace();
-                        return null;
+                        return false;
                     }
-
                     return true;
                 }
             });
+            if(success) break;
         }
 
         // Set name
-        switch(releaseType) {
+        switch(uploadDescriptor.getReleaseType()) {
             case BETA:
             case ALPHA:
-                name = build.getProject().getDisplayName() + " " +  uploadDescriptor.getFileVersion() + "-b" + build.getNumber();
+                name = build.getProject().getDisplayName() + uploadDescriptor.getFileVersion() + "-b" + build.getNumber();
                 break;
             case RELEASE:
-                name = build.getProject().getDisplayName() + " " + uploadDescriptor.getFileVersion();
+                name = build.getProject().getDisplayName() + uploadDescriptor.getFileVersion();
                 break;
         }
         uploadDescriptor.setName(name);
@@ -240,7 +256,7 @@ public class BukkitPublisher extends Notifier {
         } else apiKey = this.apiKey;
 
         // Upload file
-        BukkitClient bClient = new BukkitClient(projectUrl, apiKey);
+        BukkitClient bClient = new BukkitClient(apiKey);
         //bClient.uploadFile(fDescriptor);
 
         logger.info(uploadDescriptor.toString());
