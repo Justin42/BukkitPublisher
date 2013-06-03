@@ -5,16 +5,6 @@ import java.util.ArrayList;
 
 public class FileUploadDescriptor {
     private File file;
-
-    public String getFileVersion() {
-        return fileVersion;
-    }
-
-    public FileUploadDescriptor setFileVersion(String fileVersion) {
-        this.fileVersion = fileVersion;
-        return this;
-    }
-
     private String fileVersion = "";
     private String bukkitVersion = "";
     private String name = "";
@@ -22,7 +12,7 @@ public class FileUploadDescriptor {
     private ArrayList<String> caveats = new ArrayList<>();
     private ReleaseType releaseType = ReleaseType.ALPHA;
     private String projectUrl;
-
+    private String fileName;
 
     public FileUploadDescriptor(File file) {
         this.file = file;
@@ -37,6 +27,7 @@ public class FileUploadDescriptor {
         sb.append(String.format("Project URL: %s \n", projectUrl));
         sb.append(String.format("File Path: %s \n", file.getPath()));
         sb.append(String.format("Name: %s \n", name));
+        sb.append(String.format("Filename: %s \n", fileName));
         sb.append(String.format("Version: %s \n", fileVersion));
         sb.append(String.format("Release Type: %s \n", releaseType.toString()));
         sb.append(String.format("Bukkit Version: %s \n\n", bukkitVersion));
@@ -52,6 +43,23 @@ public class FileUploadDescriptor {
             sb.append(caveat).append("\n");
         }
         return sb.toString();
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileVersion() {
+        return fileVersion;
+    }
+
+    public FileUploadDescriptor setFileVersion(String fileVersion) {
+        this.fileVersion = fileVersion;
+        return this;
     }
 
     public void setFile(File file) {
