@@ -20,22 +20,34 @@ package me.b2ojustin.bukkit.bukkitclient;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import me.b2ojustin.bukkit.bukkitclient.json.CraftBukkitBuild;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.FormBodyPart;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class BukkitClient {
     private static final Logger logger = Logger.getLogger(BukkitClient.class.getName());
     private static final String BUKKIT_URL = "http://dev.bukkit.org/";
-    private static final String BUKKIT_VERSION_URL = "http://dev.bukkit.org/game-versions.json";
-    private final String apiKey;
+    private static final String BUKKIT_VERSION_URL = BUKKIT_URL + "game-versions.json";
+    private static final String USER_AGENT = "BukkitAPIClient/0.0.1";
+    private String apiKey = "";
+    {
 
+    }
     public static Logger getLogger() {
         return logger;
     }
@@ -46,22 +58,78 @@ public class BukkitClient {
 
     public boolean uploadFile(FileUploadDescriptor descriptor) {
         CraftBukkitBuild build = getBukkitBuild(descriptor.getBukkitVersion());
-        if(build == null) {
-            logger.warning("Failed to retrieve craftbukkit build for version " + descriptor.getBukkitVersion());
-            return false;
+        if(build == null) build = getLatestBuild();
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost uploadPost = new HttpPost(descriptor.getProjectUrl() + "upload-file.json?api-key=" + apiKey);
+            uploadPost.addHeader("User-agent", USER_AGENT);
+
+            HashMap<String, String> formData = new HashMap<>();
+            formData.put("name", descriptor.getName());
+            formData.put("game_versions", String.valueOf(build.buildNumber));
+
+
+            switch(descriptor.getReleaseType()) {
+                case ALPHA: formData.put("file_type", "a"); break;
+                case BETA: formData.put("file_type", "b"); break;
+                case RELEASE: formData.put("file_type", "r"); break;
+                default: formData.put("file_type", "a"); break;
+            }
+
+            // Add change logs
+            StringBuilder changes = new StringBuilder("");
+            for(String change : descriptor.getChanges()) {
+                changes.append(change).append("\n");
+            }
+            if(changes.toString().isEmpty()) changes.append(" ");
+            formData.put("change_log", changes.toString());
+            formData.put("change_markup_type", "plain");
+
+
+            StringBuilder caveats = new StringBuilder();
+            for(String caveat : descriptor.getCaveats()) {
+                caveats.append(caveat).append("\n");
+            }
+            formData.put("known_caveats", caveats.toString());
+            formData.put("caveats_markup_type", "plain");
+
+            // Add form data to httpost
+            MultipartEntity entity = new MultipartEntity();
+            for(Map.Entry<String, String> entry : formData.entrySet()) {
+                entity.addPart(new FormBodyPart(entry.getKey(), new StringBody(entry.getValue(), ContentType.TEXT_PLAIN)));
+            }
+
+            // Add file data
+            FileBody fileBody = new FileBody(descriptor.getFile(), ContentType.create("application/x-java-archive"), descriptor.getFileName());
+            entity.addPart("file", fileBody);
+            uploadPost.setEntity(entity);
+
+            try(CloseableHttpResponse response = httpClient.execute(uploadPost)) {
+                if(response.getStatusLine().getStatusCode() != 201) {
+                    logger.warning(EntityUtils.toString(response.getEntity()));
+                    logger.warning("File upload was unsucessful. " + response.getStatusLine().getReasonPhrase());
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
         return true;
     }
 
     public static HashMap<Integer, CraftBukkitBuild> getBukkitVersions() {
         try {
-            HttpClient httpClient = new HttpClient();
-            HttpMethod httpMethod = new GetMethod(BUKKIT_VERSION_URL);
-            httpClient.executeMethod(httpMethod);
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpGet httpMethod = new HttpGet(BUKKIT_VERSION_URL);
+            CloseableHttpResponse response = httpClient.execute(httpMethod);
             Gson gson = new Gson();
 
             final Type type = new TypeToken<HashMap<Integer, CraftBukkitBuild>>(){}.getType();
-            HashMap<Integer, CraftBukkitBuild> buildMap = gson.fromJson(httpMethod.getResponseBodyAsString(), type);
+            HashMap<Integer, CraftBukkitBuild> buildMap = gson.fromJson(EntityUtils.toString(response.getEntity()), type);
+            for(Map.Entry<Integer, CraftBukkitBuild> entry : buildMap.entrySet()) {
+                entry.getValue().buildNumber = entry.getKey();
+            }
             httpMethod.releaseConnection();
             return buildMap;
         } catch (IOException e) {
@@ -86,6 +154,7 @@ public class BukkitClient {
         }
         return buildMap.get(latestBuild);
     }
+
     public static CraftBukkitBuild getBukkitBuild(String version) {
         Collection<CraftBukkitBuild> bukkitBuilds = getBukkitVersions().values();
         for(CraftBukkitBuild build : bukkitBuilds) {
