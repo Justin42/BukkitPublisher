@@ -23,4 +23,5 @@ public class CraftBukkitBuild {
     public String release_date;
     public String name;
     public String internal_id;
+    public int buildNumber;
 }
