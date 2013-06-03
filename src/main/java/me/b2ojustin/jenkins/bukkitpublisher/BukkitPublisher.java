@@ -144,6 +144,7 @@ public class BukkitPublisher extends Notifier {
 
         final FileUploadDescriptor uploadDescriptor = new FileUploadDescriptor();
         uploadDescriptor.setReleaseType(ReleaseType.valueOf(this.releaseType.toUpperCase()));
+        uploadDescriptor.setProjectUrl(projectUrl);
 
         String name = null;
         WildcardFileFilter filter = new WildcardFileFilter(fileName);
