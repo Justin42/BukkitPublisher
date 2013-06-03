@@ -78,6 +78,14 @@ public class BukkitClient {
         return false;
     }
 
+    public static CraftBukkitBuild getLatestBuild() {
+        HashMap<Integer, CraftBukkitBuild> buildMap = getBukkitVersions();
+        int latestBuild = 0;
+        for(int buildNumber : buildMap.keySet()) {
+            if(buildNumber > latestBuild) latestBuild = buildNumber;
+        }
+        return buildMap.get(latestBuild);
+    }
     public static CraftBukkitBuild getBukkitBuild(String version) {
         Collection<CraftBukkitBuild> bukkitBuilds = getBukkitVersions().values();
         for(CraftBukkitBuild build : bukkitBuilds) {
