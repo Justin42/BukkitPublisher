@@ -267,7 +267,9 @@ public class BukkitPublisher extends Notifier {
         // Upload file
         BukkitClient bClient = new BukkitClient(apiKey);
         logger.info(uploadDescriptor.toString());
-        bClient.uploadFile(uploadDescriptor);
+        boolean uploadSuccess = bClient.uploadFile(uploadDescriptor);
+
+        if(!uploadSuccess && failBuild) return !failBuild;
         return true;
     }
 }
