@@ -142,11 +142,14 @@ public class BukkitPublisher extends Notifier {
             return !failBuild;
         }
 
+        if(!projectUrl.endsWith("/")) {
+            projectUrl = projectUrl + "/";
+        }
+
         final FileUploadDescriptor uploadDescriptor = new FileUploadDescriptor();
         uploadDescriptor.setReleaseType(ReleaseType.valueOf(this.releaseType.toUpperCase()));
         uploadDescriptor.setProjectUrl(projectUrl);
 
-        String name = null;
         WildcardFileFilter filter = new WildcardFileFilter(fileName);
         for(Run<? extends AbstractProject<?, ?>, ? extends AbstractBuild<?, ?>>.Artifact artifact : build.getArtifacts()) {
             logger.info("Found artifact. " + artifact.getFileName());
@@ -231,17 +234,22 @@ public class BukkitPublisher extends Notifier {
         }
 
         // Set name
+        String name;
         switch(uploadDescriptor.getReleaseType()) {
             case BETA:
             case ALPHA:
-                name = build.getProject().getDisplayName() + uploadDescriptor.getFileVersion() + "-b" + build.getNumber();
+                name = build.getProject().getDisplayName() + " v" + uploadDescriptor.getFileVersion() + "-b" + build.getNumber();
                 break;
             case RELEASE:
-                name = build.getProject().getDisplayName() + uploadDescriptor.getFileVersion();
+                name = build.getProject().getDisplayName() + " v" + uploadDescriptor.getFileVersion();
                 break;
+            default:
+                name = build.getProject().getDisplayName() + " v" + uploadDescriptor.getFileVersion();
+                break;
+
         }
         uploadDescriptor.setName(name);
-
+        uploadDescriptor.setFileName(build.getProject().getDisplayName().toLowerCase().replace(" ", "") + ".jar");
 
         // Get changes
         ArrayList<String> changes = new ArrayList<>();
@@ -258,9 +266,8 @@ public class BukkitPublisher extends Notifier {
 
         // Upload file
         BukkitClient bClient = new BukkitClient(apiKey);
-        //bClient.uploadFile(fDescriptor);
-
         logger.info(uploadDescriptor.toString());
+        bClient.uploadFile(uploadDescriptor);
         return true;
     }
 }
