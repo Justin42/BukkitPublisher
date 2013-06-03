@@ -113,8 +113,9 @@ public class BukkitClient {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
-
+        logger.info("File upload successful");
         return true;
     }
 
