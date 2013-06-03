@@ -37,6 +37,7 @@ public class FileUploadDescriptor {
         sb.append(String.format("Project URL: %s \n", projectUrl));
         sb.append(String.format("File Path: %s \n", file.getPath()));
         sb.append(String.format("Name: %s \n", name));
+        sb.append(String.format("Version: %s \n", fileVersion));
         sb.append(String.format("Release Type: %s \n", releaseType.toString()));
         sb.append(String.format("Bukkit Version: %s \n\n", bukkitVersion));
 
